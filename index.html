@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebPong</title>
+    <script src="webpong.js"></script>
+    <style>
+        html, body {
+            width:  100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pong_canvas"></canvas>
+    <script>
+        var canvas = document.getElementById("pong_canvas");
+
+        var webPong = new WebPong.WebPong(canvas);
+        webPong.start();
+
+        ws = new WebSocket("ws://localhost:8080", "webpong-stream");
+
+        ws.onmessage = function (event) {
+            webPong.update(JSON.parse(event.data));
+        }
+    </script>
+</body>
+</html>
