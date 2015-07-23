@@ -1,15 +1,24 @@
 /**
  * Created by josh on 23/07/15.
  */
+if (typeof exports !== "undefined") {
+    var Phys = require("./Phys.js");
+}
 (function(exports){
 
     function Player(context, board, xpos) {
         this.board = board;
         this.context = context;
         this.paddle_x = xpos;
-        this.paddle_y = this.board.height / 2;
+        this.paddle_y = 120; //this.board.height / 2;
         this.paddle_height = 50;
         this.paddle_width = 10;
+        this.convexHull = undefined;
+        this.createConvexHull();
+        this.convexHull.setTransform(new Phys.Transform(
+            new Phys.Vec2d(this.paddle_x,this.paddle_y),
+            new Phys.Vec2d(1,1),
+            0));
     }
     exports.Player = Player;
 
@@ -18,28 +27,78 @@
     };
 
     Player.prototype.render = function () {
-        this.context.beginPath();
-        this.context.rect(this.paddle_x - this.paddle_width/2,
-            this.paddle_y - this.paddle_height/2,
-            this.paddle_width,
-            this.paddle_height);
-        this.context.stroke();
+        this.convexHull.render(this.context);
     };
 
-    function Ball(context, board) {
+    Player.prototype.createConvexHull = function () {
+        this.convexHull = new Phys.ConvexHull([
+            new Phys.Vec2d(-this.paddle_width/2, -this.paddle_height/2),
+            new Phys.Vec2d( this.paddle_width/2, -this.paddle_height/2),
+            new Phys.Vec2d( this.paddle_width/2+2,  0),
+            new Phys.Vec2d( this.paddle_width/2,  this.paddle_height/2),
+            new Phys.Vec2d(-this.paddle_width/2,  this.paddle_height/2),
+            new Phys.Vec2d(-this.paddle_width/2-2,  0)
+        ]);
+    };
+
+    function Ball(context, board, player1, player2) {
         this.context = context;
         this.board = board;
+        this.player1 = player1;
+        this.player2 = player2;
         this.pos_x = this.board.width / 2;
         this.pos_y = this.board.height / 2;
         this.radius = 10;
         this.velo_x = 100;
-        this.velo_y = 80;
+        this.velo_y = 0;
     }
     exports.Ball = Ball;
+
+    Ball.prototype.getCircle = function () {
+        return new Phys.Circle(new Phys.Vec2d(this.pos_x, this.pos_y), this.radius);
+    };
 
     Ball.prototype.update = function (delta_time) {
         this.pos_x += this.velo_x * delta_time;
         this.pos_y += this.velo_y * delta_time;
+
+        /* Physics pipeline
+            1. Backup position so no longer intersecting the object
+                (Kinda cheating, just moving the object along the line of intersection not velocity).
+            2. Calculate the reflected velocity
+            3. Move the amount the object was backed up along the new velocity
+
+            Note:   Ideally this would be applied to the closest intersecting object.
+                    This if there is still an intersection this would be repeated until there is no longer
+                    collision (maybe an edge case which could cause the algorithm to get stuck).
+
+         */
+
+        var circle = this.getCircle();
+        var intersect_p1 = circle.intersects(this.player1.convexHull);
+        if (intersect_p1.intersects) {
+            console.log("Intersecting player 1!");
+            var velo = new Phys.Vec2d(this.velo_x, this.velo_y);
+            var pos = new Phys.Vec2d(this.pos_x, this.pos_y);
+            pos = pos.sub(intersect_p1.overlap);
+            velo = velo.reflect(intersect_p1.overlap);
+            this.pos_x = pos.x;
+            this.pos_y = pos.y;
+            this.velo_x = velo.x;
+            this.velo_y = velo.y;
+        }
+        var intersect_p2 = circle.intersects(this.player2.convexHull);
+        if (intersect_p2.intersects) {
+            console.log("Intersecting player 2!");
+            var velo = new Phys.Vec2d(this.velo_x, this.velo_y);
+            var pos = new Phys.Vec2d(this.pos_x, this.pos_y);
+            pos = pos.sub(intersect_p2.overlap);
+            velo = velo.reflect(intersect_p2.overlap);
+            this.pos_x = pos.x;
+            this.pos_y = pos.y;
+            this.velo_x = velo.x;
+            this.velo_y = velo.y;
+        }
 
         //Collision Left
         if ((this.pos_x - this.radius) < 0 ) {
@@ -62,7 +121,6 @@
             this.velo_y = -this.velo_y;
             this.pos_y -= ((this.pos_y + this.radius) - this.board.height);
         }
-
     };
 
     Ball.prototype.render = function () {
@@ -93,7 +151,7 @@
         this.board = new Board(900,300)
         this.player1 = new Player(this.context, this.board, 20);
         this.player2 = new Player(this.context, this.board, 880);
-        this.ball = new Ball(this.context, this.board);
+        this.ball = new Ball(this.context, this.board, this.player1, this.player2);
 
         this.last_time = new Date().getTime();
         console.log(this.last_time);
