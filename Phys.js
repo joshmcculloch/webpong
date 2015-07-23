@@ -68,13 +68,13 @@
         this.lines = [];
         for(var p=0; p<(points.length-1); p++) {
             this.lines.push(new Line(
-                    new Vec2d(points[p].x, points[p].y),
-                    new Vec2d(points[p+1].x, points[p+1].y)
+                    points[p].clone(),
+                    points[p+1].clone()
             ));
         }
         this.lines.push(new Line(
-                new Vec2d(points[points.length-1].x, points[points.length-1].y),
-                new Vec2d(points[0].x, points[0].y)
+                points[points.length-1].clone(),
+                points[0].clone()
         ));
     }
     exports.ConvexHull = ConvexHull;
@@ -97,8 +97,8 @@
             }
         }
         return {
-            intersets: distance <= this.r,
-            distance: t,
+            intersects: distance <= this.r,
+            distance: distance,
             point: closestPoint
         };
 
