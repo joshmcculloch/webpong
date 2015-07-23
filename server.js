@@ -18,7 +18,7 @@ function Client (conn, clientManager) {
         }
     });
     this.conn.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+        console.log((new Date()) + ' Peer ' + self.conn.remoteAddress + ' disconnected.');
         self.clientManager.removeClient(self);
     });
 }
@@ -36,7 +36,7 @@ ClientManager.prototype.addClient = function (client) {
 }
 
 ClientManager.prototype.removeClient = function (client) {
-    var index = array.indexOf(client);
+    var index = this.clients.indexOf(client);
     if (index > -1) {
         this.clients.splice(index, 1);
     }
@@ -85,4 +85,4 @@ setInterval(function () {
             clients[i].sendObj(state);
         }
     };
-}, 100)
+}, 500)
