@@ -10,7 +10,8 @@ if (typeof exports !== "undefined") {
         this.board = board;
         this.context = context;
         this.paddle_x = xpos;
-        this.paddle_y = 120; //this.board.height / 2;
+        this.paddle_y = this.board.height / 2;
+        this.velo_y = 0;
         this.paddle_height = 50;
         this.paddle_width = 10;
         this.convexHull = undefined;
@@ -22,8 +23,18 @@ if (typeof exports !== "undefined") {
     }
     exports.Player = Player;
 
-    Player.prototype.update = function (context) {
-
+    Player.prototype.update = function (delta_time) {
+        this.paddle_y += this.velo_y * delta_time;
+        if ((this.paddle_y-this.paddle_height/2) < 0) {
+            this.paddle_y = this.paddle_height/2
+        } else if ((this.paddle_y+this.paddle_height/2) > this.board.height) {
+            console.log("ouside range");
+            this.paddle_y = this.board.height-this.paddle_height/2
+        }
+        this.convexHull.setTransform(new Phys.Transform(
+            new Phys.Vec2d(this.paddle_x, this.paddle_y),
+            new Phys.Vec2d(1, 1),
+            0));
     };
 
     Player.prototype.render = function () {
@@ -87,6 +98,7 @@ if (typeof exports !== "undefined") {
             this.velo_x = velo.x;
             this.velo_y = velo.y;
         }
+
         var intersect_p2 = circle.intersects(this.player2.convexHull);
         if (intersect_p2.intersects) {
             console.log("Intersecting player 2!");
@@ -194,11 +206,13 @@ if (typeof exports !== "undefined") {
         this.player1.paddle_y = state.player1.paddle_y;
         this.player1.paddle_height = state.player1.paddle_height;
         this.player1.paddle_width = state.player1.paddle_width;
+        this.player1.velo_y = state.player1.velo_y;
 
         this.player2.paddle_x = state.player2.paddle_x;
         this.player2.paddle_y = state.player2.paddle_y;
         this.player2.paddle_height = state.player2.paddle_height;
         this.player2.paddle_width = state.player2.paddle_width;
+        this.player2.velo_y = state.player2.velo_y;
 
         this.ball.pos_x = state.ball.pos_x;
         this.ball.pos_y = state.ball.pos_y;
@@ -213,13 +227,15 @@ if (typeof exports !== "undefined") {
                 paddle_x: this.player1.paddle_x,
                 paddle_y: this.player1.paddle_y,
                 paddle_height: this.player1.paddle_height,
-                paddle_width: this.player1.paddle_width
+                paddle_width: this.player1.paddle_width,
+                velo_y: this.player1.velo_y
             },
             player2: {
                 paddle_x: this.player2.paddle_x,
                 paddle_y: this.player2.paddle_y,
                 paddle_height: this.player2.paddle_height,
-                paddle_width: this.player2.paddle_width
+                paddle_width: this.player2.paddle_width,
+                velo_y: this.player2.velo_y
             },
             ball: {
                 pos_x: this.ball.pos_x,

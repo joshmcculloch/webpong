@@ -14,7 +14,23 @@ function Client (conn, clientManager) {
     this.conn.on('message', function(message) {
         if (message.type === 'utf8') {
             console.log('Received Message: ' + message.utf8Data);
-            connection.sendUTF( JSON.parse(message.utf8Data));
+            var data = JSON.parse(message.utf8Data);
+            console.log(data);
+            if (typeof data.update !== "undefined" &&
+                typeof data.player !== "undefined" &&
+                typeof data.velocity !== "undefined") {
+                if (data.player == 1) {
+                    console.log("set player 1 velo to ", data.velocity)
+                    webPong.player1.velo_y = data.velocity;
+                    clientManager.sendUpdate();
+                } else if (data.player == 2) {
+                    webPong.player2.velo_y = data.velocity;
+                    clientManager.sendUpdate();
+                }
+
+            }
+
+            //connection.sendUTF( );
         }
     });
     this.conn.on('close', function(reasonCode, description) {
@@ -27,22 +43,33 @@ Client.prototype.sendObj = function (obj) {
     this.conn.sendUTF( JSON.stringify(obj));
 };
 
-function ClientManager() {
+function ClientManager(game) {
     this.clients = [];
+    this.game = game;
 }
 
 ClientManager.prototype.addClient = function (client) {
     this.clients.push(client);
-}
+};
+
+ClientManager.prototype.sendUpdate = function () {
+    var state = this.game.getState();
+    for(var i=0; i<this.clients.length; i ++ ) {
+        if (this.clients[i].subScribed) {
+            this.clients[i].sendObj(state);
+        }
+    };
+};
+
 
 ClientManager.prototype.removeClient = function (client) {
     var index = this.clients.indexOf(client);
     if (index > -1) {
         this.clients.splice(index, 1);
     }
-}
+};
 
-var clientManager = new ClientManager();
+var clientManager = new ClientManager(webPong);
 
 var server = http.createServer(function(request, response) {
     console.log((new Date()) + ' Received request for ' + request.url);
@@ -78,11 +105,12 @@ wsServer.on('request', function(request) {
 webPong.start();
 
 setInterval(function () {
+    clientManager.sendUpdate(); /*
     var state = webPong.getState();
     var clients = clientManager.clients;
     for(var i=0; i<clients.length; i ++ ) {
         if (clients[i].subScribed) {
             clients[i].sendObj(state);
         }
-    };
+    };*/
 }, 500)

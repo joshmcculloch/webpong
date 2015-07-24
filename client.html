@@ -4,10 +4,21 @@
     <meta charset="UTF-8">
     <title></title>
     <script src="client.js"></script>
+    <style>
+        html, body {
+            width:  100%;
+            height: 100%;
+            margin: 0px;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
+<canvas id="controller_canvas"></canvas>
 <script>
+    var canvas = document.getElementById("controller_canvas");
     var client = new Client();
+    var controller = new Controller(canvas, client);
 </script>
 </body>
 </html>

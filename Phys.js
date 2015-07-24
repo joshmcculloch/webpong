@@ -116,6 +116,7 @@
     };
 
     ConvexHull.prototype.updateLines = function () {
+        this.lines = [];
         for(var p=0; p<(this.points.length-1); p++) {
             this.lines.push(new Line(
                 this.points[p].clone(),
