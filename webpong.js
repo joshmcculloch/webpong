@@ -141,11 +141,23 @@ if (typeof exports !== "undefined") {
         this.context.stroke();
     };
 
-    function Board(width, height) {
+    function Board(context, width, height) {
+		this.context = context;
         this.width = width;
         this.height = height;
     }
     exports.Board = Board;
+    
+    Board.prototype.render = function () {
+        var lingrad = this.context.createLinearGradient(0,0,this.width,0);
+        lingrad.addColorStop(0, '#FFDDDD');
+        //lingrad.addColorStop(0.3, '#661111');
+        //lingrad.addColorStop(0.7, '#111166');
+        lingrad.addColorStop(1, '#DDDDFF');
+        this.context.fillStyle = lingrad;
+        this.context.fillRect(0,0,this.width,this.height);
+    };
+
 
     function WebPong(canvas) {
         this.headless = false;
@@ -159,8 +171,11 @@ if (typeof exports !== "undefined") {
         } else {
             this.headless = true;
         }
+        this.GameStates = {waiting: 0, countDown: 1, ingame: 2, paused: 3};
+        this.gameState = this.GameStates.waiting;
+        this.timer = 0;
 
-        this.board = new Board(900,300)
+        this.board = new Board(this.context, 900,300)
         this.player1 = new Player(this.context, this.board, 20);
         this.player2 = new Player(this.context, this.board, 880);
         this.ball = new Ball(this.context, this.board, this.player1, this.player2);
@@ -173,26 +188,58 @@ if (typeof exports !== "undefined") {
     exports.WebPong = WebPong;
 
     WebPong.prototype.start = function () {
+		this.gameState = this.GameStates.running;
         this.run();
     };
+    
+     WebPong.prototype.startMatch = function () {
+		this.board = new Board(this.context, 900,300)
+        this.player1 = new Player(this.context, this.board, 20);
+        this.player2 = new Player(this.context, this.board, 880);
+        this.ball = new Ball(this.context, this.board, this.player1, this.player2);
+	 }
+    
+    WebPong.prototype.startCountDown = function (value) {
+		this.gameState = this.GameStates.countDown;
+        this.timer = value;
+    };
+    
+    WebPong.prototype.countDown = function () {
+		if (this.timer <= 0) {
+			this.gameState = this.GameStates.running;
+		} else {
+			setTimeout(this.countDown, 1000);
+		}
+	}
 
     WebPong.prototype.run = function () {
         var current_time = new Date().getTime();
         var delta_time = (current_time - this.last_time) / 1000;
 
-        this.player1.update(delta_time);
-        this.player2.update(delta_time);
-        this.ball.update(delta_time);
-
+		switch (this.gameState) {
+		case this.GameStates.countDown:
+			this.player1.update(delta_time);
+			this.player2.update(delta_time);
+			break;
+		case this.GameStates.running:
+			this.player1.update(delta_time);
+			this.player2.update(delta_time);
+			this.ball.update(delta_time);
+			break;
+		case this.GameStates.paused:
+			break;
+		}
+        
         if (!this.headless) {
-            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.context.save();
-                this.context.scale(this.canvas.width / this.board.width, this.canvas.height / this.board.height);
-                this.player1.render();
-                this.player2.render();
-                this.ball.render();
-            this.context.restore();
-        }
+			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+				this.context.save();
+				this.context.scale(this.canvas.width / this.board.width, this.canvas.height / this.board.height);
+				this.board.render();
+				this.player1.render();
+				this.player2.render();
+				this.ball.render();
+			this.context.restore();
+		}
 
         this.last_time = current_time;
 
@@ -223,6 +270,10 @@ if (typeof exports !== "undefined") {
 
     WebPong.prototype.getState = function () {
         var state = {
+			game: {
+				gameState: this.gameState,
+				timer: this.timer
+			},
             player1: {
                 paddle_x: this.player1.paddle_x,
                 paddle_y: this.player1.paddle_y,

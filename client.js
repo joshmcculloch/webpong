@@ -25,6 +25,8 @@ function Controller(canvas, client) {
     this.canvas.width  = window.innerWidth;
     this.canvas.height = window.innerHeight;
     this.value = 0
+    this.cursor_x = this.canvas.width/2;
+    this.cursor_y = this.canvas.height/2;
     this.mouseIsDown = false;
 
     var self = this;
@@ -32,12 +34,16 @@ function Controller(canvas, client) {
         function (event) {
             event.preventDefault();
             this.value = event.targetTouches[0].pageY-this.canvas.height/2;
+            self.cursor_x = e.clientX;
+		self.cursor_y = e.clientY;
     }, false);
 
     this.canvas.onmousedown = function(e){
         self.mouseIsDown = true;
         self.value = e.clientY - self.canvas.height/2;
         client.setVelocity(self.value);
+        self.cursor_x = e.clientX;
+		self.cursor_y = e.clientY;
     }
 
     this.canvas.onmouseup = function(e){
@@ -45,6 +51,8 @@ function Controller(canvas, client) {
             self.mouseIsDown = false;
             self.value = 0;
             client.setVelocity(self.value);
+            self.cursor_x = self.canvas.width/2;
+			self.cursor_y = self.canvas.height/2;
         }
     }
 
@@ -52,6 +60,8 @@ function Controller(canvas, client) {
         if(!self.mouseIsDown) return;
         self.value = e.clientY - self.canvas.height/2;
         client.setVelocity(self.value);
+        self.cursor_x = e.clientX;
+		self.cursor_y = e.clientY;
         return false;
     }
 
@@ -63,7 +73,7 @@ Controller.prototype.draw = function () {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.context.beginPath();
-    this.context.arc(this.canvas.width/2,this.canvas.height/2 +this.value, 25,0,2*Math.PI);
+    this.context.arc(this.cursor_x,this.cursor_y, 25,0,2*Math.PI);
     this.context.fillStyle = 'red';
     this.context.fill();
 

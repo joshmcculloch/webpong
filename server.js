@@ -8,7 +8,8 @@ var webPong = new WebPong.WebPong();
 function Client (conn, clientManager) {
     this.conn = conn;
     this.clientManager = clientManager;
-    this.subScribed = true;
+    this.subScribed = false;
+    this.name = "";
 
     var self = this;
     this.conn.on('message', function(message) {
@@ -20,7 +21,7 @@ function Client (conn, clientManager) {
                 typeof data.player !== "undefined" &&
                 typeof data.velocity !== "undefined") {
                 if (data.player == 1) {
-                    console.log("set player 1 velo to ", data.velocity)
+                    console.log("set ",this.name," velo to ", data.velocity)
                     webPong.player1.velo_y = data.velocity;
                     clientManager.sendUpdate();
                 } else if (data.player == 2) {
@@ -28,7 +29,14 @@ function Client (conn, clientManager) {
                     clientManager.sendUpdate();
                 }
 
-            }
+            } else if (typeof data.subscribe !== "undefined") {
+				self.subScribed = true;
+				
+			} else if (typeof data.queueMe !== "undefined" && 
+				typeof data.name !== "undefined") {
+				self.name = data.name;
+				self.clientManager.queueMe(self);
+			}
 
             //connection.sendUTF( );
         }
@@ -45,11 +53,16 @@ Client.prototype.sendObj = function (obj) {
 
 function ClientManager(game) {
     this.clients = [];
+    this.playerQueue = [];
     this.game = game;
 }
 
 ClientManager.prototype.addClient = function (client) {
     this.clients.push(client);
+};
+
+ClientManager.prototype.queueMe = function (client) {
+    this.playerQueue.push(client);
 };
 
 ClientManager.prototype.sendUpdate = function () {
@@ -61,11 +74,22 @@ ClientManager.prototype.sendUpdate = function () {
     };
 };
 
+ClientManager.prototype.sendMessage = function (text) {
+
+    for(var i=0; i<this.clients.length; i ++ ) {
+        this.clients[i].sendObj({message: text});
+    };
+};
+
 
 ClientManager.prototype.removeClient = function (client) {
     var index = this.clients.indexOf(client);
     if (index > -1) {
         this.clients.splice(index, 1);
+    }
+    var index = this.playerQueue.indexOf(client);
+    if (index > -1) {
+        this.playerQueue.splice(index, 1);
     }
 };
 
