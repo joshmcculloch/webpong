@@ -12,6 +12,7 @@ if (typeof exports !== "undefined") {
         this.paddle_x = xpos;
         this.paddle_y = this.board.height / 2;
         this.velo_y = 0;
+        this.score = 0;
         this.paddle_height = 50;
         this.paddle_width = 10;
         this.convexHull = undefined;
@@ -171,9 +172,10 @@ if (typeof exports !== "undefined") {
         } else {
             this.headless = true;
         }
-        this.GameStates = {waiting: 0, countDown: 1, ingame: 2, paused: 3};
+        this.GameStates = {waiting: 0, countDown: 1, ingame: 2, paused: 3, gameOver: 4};
         this.gameState = this.GameStates.waiting;
         this.timer = 0;
+        this.message = "";
 
         this.board = new Board(this.context, 900,300)
         this.player1 = new Player(this.context, this.board, 20);
@@ -182,13 +184,11 @@ if (typeof exports !== "undefined") {
 
         this.last_time = new Date().getTime();
         console.log(this.last_time);
-
-
     }
     exports.WebPong = WebPong;
 
     WebPong.prototype.start = function () {
-		this.gameState = this.GameStates.running;
+		this.gameState = this.GameStates.waiting;
         this.run();
     };
     
@@ -211,12 +211,21 @@ if (typeof exports !== "undefined") {
 			setTimeout(this.countDown, 1000);
 		}
 	}
+	
+	WebPong.prototype.renderText = function(text, x, y) {
+		this.context.fillStyle = "black";
+		this.context.font="50px Georgia";
+		this.context.textAlign="center";
+		this.context.fillText(text,x,y);
+	}
 
     WebPong.prototype.run = function () {
         var current_time = new Date().getTime();
         var delta_time = (current_time - this.last_time) / 1000;
 
 		switch (this.gameState) {
+		case this.GameStates.waiting:
+			break;
 		case this.GameStates.countDown:
 			this.player1.update(delta_time);
 			this.player2.update(delta_time);
@@ -228,9 +237,12 @@ if (typeof exports !== "undefined") {
 			break;
 		case this.GameStates.paused:
 			break;
+		case this.GameStates.endGame:
+			break;
 		}
         
         if (!this.headless) {
+			//Render Game Layer
 			this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 				this.context.save();
 				this.context.scale(this.canvas.width / this.board.width, this.canvas.height / this.board.height);
@@ -239,6 +251,14 @@ if (typeof exports !== "undefined") {
 				this.player2.render();
 				this.ball.render();
 			this.context.restore();
+			
+			//Render Gui Layer
+			this.renderText("Waiting for players", this.canvas.width / 2, this.canvas.height / 2 - 50)
+			
+			this.renderText(this.player1.score, 50, this.canvas.height - 50)
+			this.renderText(this.player2.score, this.canvas.width - 50, this.canvas.height - 50)
+			
+			this.renderText(this.message, this.canvas.width / 2, this.canvas.height / 2 + 50)
 		}
 
         this.last_time = current_time;
@@ -254,12 +274,14 @@ if (typeof exports !== "undefined") {
         this.player1.paddle_height = state.player1.paddle_height;
         this.player1.paddle_width = state.player1.paddle_width;
         this.player1.velo_y = state.player1.velo_y;
+        this.player1.score = state.player1.score;
 
         this.player2.paddle_x = state.player2.paddle_x;
         this.player2.paddle_y = state.player2.paddle_y;
         this.player2.paddle_height = state.player2.paddle_height;
         this.player2.paddle_width = state.player2.paddle_width;
         this.player2.velo_y = state.player2.velo_y;
+        this.player2.score = state.player2.score;
 
         this.ball.pos_x = state.ball.pos_x;
         this.ball.pos_y = state.ball.pos_y;
@@ -272,21 +294,24 @@ if (typeof exports !== "undefined") {
         var state = {
 			game: {
 				gameState: this.gameState,
-				timer: this.timer
+				timer: this.timer,
+				message: this.message
 			},
             player1: {
                 paddle_x: this.player1.paddle_x,
                 paddle_y: this.player1.paddle_y,
                 paddle_height: this.player1.paddle_height,
                 paddle_width: this.player1.paddle_width,
-                velo_y: this.player1.velo_y
+                velo_y: this.player1.velo_y,
+                score: this.player1.score
             },
             player2: {
                 paddle_x: this.player2.paddle_x,
                 paddle_y: this.player2.paddle_y,
                 paddle_height: this.player2.paddle_height,
                 paddle_width: this.player2.paddle_width,
-                velo_y: this.player2.velo_y
+                velo_y: this.player2.velo_y,
+                score: this.player1.score
             },
             ball: {
                 pos_x: this.ball.pos_x,
