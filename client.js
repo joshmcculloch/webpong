@@ -8,6 +8,10 @@ if (window.DeviceMotionEvent) {
 function Client () {
     this.ws = new WebSocket("ws://localhost:8080", "webpong-stream");
     var self = this;
+    
+    this.ws.onopen = function (event) {
+		self.ws.send(JSON.stringify({queueMe: true, name: "test player"}));
+	}
 
     this.ws.onmessage = function (event) {
         //console.log(event.data);
@@ -15,6 +19,7 @@ function Client () {
 }
 
 Client.prototype.setVelocity = function (velocity) {
+	console.log(velocity);
     this.ws.send(JSON.stringify({update: true, player: 1, velocity: velocity}));
 };
 
@@ -69,7 +74,6 @@ function Controller(canvas, client) {
 }
 
 Controller.prototype.draw = function () {
-    console.log(this.value);
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.context.beginPath();

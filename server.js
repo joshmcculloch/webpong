@@ -3,8 +3,6 @@ var WebSocketServer = require('websocket').server;
 var http = require('http');
 var WebPong = require("./webpong.js");
 
-var webPong = new WebPong.WebPong();
-
 function Client (conn, clientManager) {
     this.conn = conn;
     this.clientManager = clientManager;
@@ -34,6 +32,7 @@ function Client (conn, clientManager) {
 				
 			} else if (typeof data.queueMe !== "undefined" && 
 				typeof data.name !== "undefined") {
+				console.log("Added "+data.name+" to queue");
 				self.name = data.name;
 				self.clientManager.queueMe(self);
 			}
@@ -52,9 +51,51 @@ Client.prototype.sendObj = function (obj) {
 };
 
 function ClientManager(game) {
+	this.serverStates = {waiting2players: 0, waiting1players: 1, ingame: 2, gameOver: 3};
+    this.serverState = this.serverStates.waiting2players;
     this.clients = [];
     this.playerQueue = [];
     this.game = game;
+    this.game.message = "Waiting for players"
+    
+    self = this;
+    setInterval(function () {
+		console.log(self.serverState, self.playerQueue.length);
+		switch (self.serverState) {
+		
+		case self.serverStates.waiting2players:
+			if (self.playerQueue.length > 0) {
+				self.serverState = self.serverStates.waiting1players;
+				self.game.message = "Waiting for one more player";
+			}
+			break
+		
+		case self.serverStates.waiting1players:
+			if (self.playerQueue.length > 1) {
+				console.log("starting game");
+				self.serverState = self.serverStates.ingame;
+				self.game.message = "Starting Game";
+				self.game.startMatch();
+			}
+			else if (self.playerQueue.length < 1) {
+				self.serverState = self.serverStates.waiting2players;
+				self.game.message = "Waiting for players"
+			}
+			break
+		
+		case self.serverStates.ingame:
+			if (self.game.gameState == self.game.GameStates.gameOver) {
+				self.serverState = self.serverStates.gameOver;
+			}
+			break
+		
+		case self.serverStates.gameOver:
+			self.serverState = self.serverStates.waiting1players;
+			self.game.message = "Waiting for players";
+			break
+		}
+		self.sendUpdate();
+	}, 500)
 }
 
 ClientManager.prototype.addClient = function (client) {
@@ -93,6 +134,8 @@ ClientManager.prototype.removeClient = function (client) {
     }
 };
 
+var webPong = new WebPong.WebPong();
+webPong.start();
 var clientManager = new ClientManager(webPong);
 
 var server = http.createServer(function(request, response) {
@@ -125,16 +168,3 @@ wsServer.on('request', function(request) {
     console.log((new Date()) + ' Connection accepted.');
     clientManager.addClient(new Client(connection,clientManager));
 });
-
-webPong.start();
-
-setInterval(function () {
-    clientManager.sendUpdate(); /*
-    var state = webPong.getState();
-    var clients = clientManager.clients;
-    for(var i=0; i<clients.length; i ++ ) {
-        if (clients[i].subScribed) {
-            clients[i].sendObj(state);
-        }
-    };*/
-}, 500)

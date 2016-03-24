@@ -197,18 +197,35 @@ if (typeof exports !== "undefined") {
         this.player1 = new Player(this.context, this.board, 20);
         this.player2 = new Player(this.context, this.board, 880);
         this.ball = new Ball(this.context, this.board, this.player1, this.player2);
+        
+        this.gameState = this.GameStates.countDown;
+        this.timer = 5;
+        var self = this;
+        /*
+        setTimeout( function () {
+			console.log(this, self, self.timer);
+			if (self.timer <= 0) {
+				self.gameState = self.GameStates.running;
+				self.message = "";
+			} else {
+				self.message = self.timer;
+				setTimeout(self.countDown, 1000);
+			}},
+			1000);*/
+		setTimeout( function () {self.countDown()},
+			1000);
 	 }
     
-    WebPong.prototype.startCountDown = function (value) {
-		this.gameState = this.GameStates.countDown;
-        this.timer = value;
-    };
     
     WebPong.prototype.countDown = function () {
 		if (this.timer <= 0) {
 			this.gameState = this.GameStates.running;
+			this.message = "";
 		} else {
-			setTimeout(this.countDown, 1000);
+			this.timer -= 1;
+			this.message = this.timer;
+			var self = this;
+			setTimeout(function () {self.countDown()}, 1000);
 		}
 	}
 	
@@ -253,7 +270,7 @@ if (typeof exports !== "undefined") {
 			this.context.restore();
 			
 			//Render Gui Layer
-			this.renderText("Waiting for players", this.canvas.width / 2, this.canvas.height / 2 - 50)
+			this.renderText("Waiting for game to start", this.canvas.width / 2, this.canvas.height / 2 - 50)
 			
 			this.renderText(this.player1.score, 50, this.canvas.height - 50)
 			this.renderText(this.player2.score, this.canvas.width - 50, this.canvas.height - 50)
@@ -269,6 +286,10 @@ if (typeof exports !== "undefined") {
     };
 
     WebPong.prototype.update = function (state) {
+		this.gameState = state.game.gameState;
+		this.timer = state.game.timer;
+		this.message = state.game.message;
+		
         this.player1.paddle_x = state.player1.paddle_x;
         this.player1.paddle_y = state.player1.paddle_y;
         this.player1.paddle_height = state.player1.paddle_height;
